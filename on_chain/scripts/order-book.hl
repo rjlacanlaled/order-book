@@ -1,0 +1,51 @@
+spending simple_dex
+
+struct Datum {
+    owner: PubKeyHash
+    from: AssetClass
+    to: AssetClass
+    minAmount: Int
+}
+
+enum Redeemer {
+    Swap
+    Cancel
+}
+
+func main(datum: Datum, redeemer: Redeemer, ctx: ScriptContext) -> Bool {
+    locked_inputs: []TxInput = ctx.tx.inputs.filter((i: TxInput) -> Bool {i.output.datum.switch{None=>{false},Inline=>{true},Hash=>{true}}});
+
+    print("locked_inputs: " + locked_inputs.length.show());
+
+    if (locked_inputs.length > 1 || locked_inputs.length < 1) {
+        false
+    } else {
+        redeemer.switch {
+            Swap => {
+                expected_value: Value = Value::new(datum.to, datum.minAmount);
+                ctx.tx.value_sent_to_datum(datum.owner, datum, true) >= expected_value    
+            },
+            Cancel => {
+                ctx.tx.is_signed_by(datum.owner)
+            }
+        }
+    }
+}
+    
+const adaToWmtDatum = Datum{
+    owner: PubKeyHash::new(#1394514f26bc9bf88f3733eaf72a5e298d209a21afe8748c2b1298b6),
+    from: AssetClass::ADA,
+    to: AssetClass::new(MintingPolicyHash::new(#065270479316f1d92e00f7f9f095ebeaac9d009c878dc35ce36d3404), #574d5474),
+    minAmount: 5000
+}
+
+const wmtToAdaDatum = Datum{
+    owner: PubKeyHash::new(#1394514f26bc9bf88f3733eaf72a5e298d209a21afe8748c2b1298b6),
+    from: AssetClass::new(MintingPolicyHash::new(#065270479316f1d92e00f7f9f095ebeaac9d009c878dc35ce36d3404), #574d5474),
+    to: AssetClass::ADA,
+    minAmount: 100000000
+}
+
+const swapRedeemer = Redeemer::Swap
+
+const cancelRedeemer = Redeemer::Cancel
