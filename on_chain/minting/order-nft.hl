@@ -1,0 +1,32 @@
+minting order_nft
+
+enum Redeemer {
+    Mint 
+    Burn
+}
+
+func main(redeemer: Redeemer, ctx: ScriptContext) -> Bool {
+
+    redeemer.switch {
+        Mint => {
+            // get output
+            outputs: []TxOutput = ctx.tx.outputs;
+            // output: TxOutput = outputs.head;
+            
+            // get expected assets
+            expected_assetname: String = "";
+            current_minting_policy_hash: MintingPolicyHash = ctx.get_current_minting_policy_hash();
+            expected_asset_s: AssetClass = AssetClass::new(current_minting_policy_hash, (expected_assetname + "s").encode_utf8());
+            expected_asset_v: AssetClass = AssetClass::new(current_minting_policy_hash, (expected_assetname + "v").encode_utf8());
+            value_minted: Value = ctx.tx.minted;
+            
+            // get total minted value
+            nft_minted_s: Int = value_minted.get(expected_asset_s);
+            nft_minted_v: Int = value_minted.get(expected_asset_v);
+            nft_minted_count: Int = nft_minted_s + nft_minted_v;
+           
+            nft_minted_count == 1 && outputs.length == 1
+        },
+        Burn => false
+    }
+}
